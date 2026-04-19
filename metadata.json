@@ -1,0 +1,6 @@
+{
+  "name": "Gatekeeper: Spotify to YTM",
+  "description": "High-fidelity Spotify to YouTube Music migration dashboard using ISRC matching and duration validation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
