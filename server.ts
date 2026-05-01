@@ -35,43 +35,26 @@ async function startServer() {
       let reason = 'No match found';
 
       try {
-        // Tier 1: ISRC Search
-        if (isrc) {
-          const searchResults = await ytmusic.searchSongs(isrc);
-          if (searchResults.length > 0) {
-            const bestMatch = searchResults[0];
-            const durationDiff = Math.abs(bestMatch.duration - (durationMs / 1000));
-            
-            if (durationDiff <= 2) {
-              matched = bestMatch;
-              tier = 1;
-              reason = 'ISRC match';
-            }
+        // Primary Gate: Metadata + Duration Match (Artist + Title)
+        const query = `${artist} - ${name}`;
+        const searchResults = await ytmusic.searchSongs(query);
+        
+        for (const candidate of searchResults) {
+          const durationDiff = Math.abs(candidate.duration - (durationMs / 1000));
+          // Check if artist matches loosely (case insensitive contains)
+          const artistMatch = candidate.artist.name.toLowerCase().includes(artist.toLowerCase()) || 
+                             artist.toLowerCase().includes(candidate.artist.name.toLowerCase());
+          
+          if (durationDiff <= 2 && artistMatch) {
+            matched = candidate;
+            tier = 1;
+            reason = 'Metadata + Duration validation successful';
+            break;
           }
         }
-
-        // Tier 2: Fuzzy Match (Artist + Title)
-        if (!matched) {
-          const query = `${artist} - ${name}`;
-          const searchResults = await ytmusic.searchSongs(query);
-          
-          for (const candidate of searchResults) {
-            const durationDiff = Math.abs(candidate.duration - (durationMs / 1000));
-            // Check if artist matches loosely (case insensitive contains)
-            const artistMatch = candidate.artist.name.toLowerCase().includes(artist.toLowerCase()) || 
-                               artist.toLowerCase().includes(candidate.artist.name.toLowerCase());
-            
-            if (durationDiff <= 2 && artistMatch) {
-              matched = candidate;
-              tier = 2;
-              reason = 'Fuzzy match (Artist + Title + Duration)';
-              break;
-            }
-          }
-          
-          if (!matched && searchResults.length > 0) {
-             reason = 'Potential matches found, but failed duration/artist validation';
-          }
+        
+        if (!matched && searchResults.length > 0) {
+           reason = 'Duration mismatch';
         }
 
         results.push({
